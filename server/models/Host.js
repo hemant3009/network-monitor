@@ -13,7 +13,7 @@ const hostSchema = new mongoose.Schema({
     type: [Number],
     default: [80, 443, 22],
   },
-  active: {
+  active: { // with this we can show a toggle switch on the dashboard
     type: Boolean,
     default: true,
   },
