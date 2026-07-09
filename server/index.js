@@ -7,6 +7,7 @@ const cors = require("cors");
 const connectDB = require("./config/db.js");
 const { pollAllHosts } = require("./poller.js");
 const { Socket } = require("dgram");
+const { checkMetric } = require("./alertEngine.js");
 
 const app = express();
 const server = http.createServer(app);  //wrap express in an http server
@@ -45,9 +46,22 @@ const start = async () => {
         try {
             const results = await pollAllHosts();
             io.emit("metrics", results);
-            console.log(`Polled ${results.length} hosts`);
+
+            // check each host for alerts
+            const allAlerts = [];
+            results.forEach((metric) => {
+                const alerts = checkMetric(metric);
+                allAlerts.push(...alerts);
+            });
+
+            if(allAlerts.length > 0){
+                io.emit("alerts", allAlerts);
+                console.log(`Polled ${results.length} hosts, ${allAlerts.length} alert(s)`);
+            }else {
+                console.log(`polled ${results.length}hosts, all healthy`);
+            }
         } catch (error) {
-            console.error(error);
+            console.error("Poll loop error:", error.message);
         }
     }, 2000);
 };
