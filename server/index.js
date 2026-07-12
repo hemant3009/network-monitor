@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require('express');
 const http = require('http'); // it's built in Node.js module
+const Metric = require("./models/Metric");
+const Alert = require("./models/Alert");
 const { Server } = require('socket.io');
 const cors = require("cors");
 
@@ -21,6 +23,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/hosts", require("./routes/hosts.js"));
 
 // log when browser connects / disconnects
 io.on("connection", (socket) => {
@@ -47,6 +50,9 @@ const start = async () => {
             const results = await pollAllHosts();
             io.emit("metrics", results);
 
+            // save metric to DB
+            await Metric.insertMany(results);
+
             // check each host for alerts
             const allAlerts = [];
             results.forEach((metric) => {
@@ -56,7 +62,12 @@ const start = async () => {
 
             if(allAlerts.length > 0){
                 io.emit("alerts", allAlerts);
+
+                // save alerts to DB
+                await Alert.insertMany(allAlerts);
+                
                 console.log(`Polled ${results.length} hosts, ${allAlerts.length} alert(s)`);
+                allAlerts.forEach((a) => console.log(`  [${a.type}] ${a.message}`));
             }else {
                 console.log(`polled ${results.length}hosts, all healthy`);
             }

@@ -31,6 +31,7 @@ const metricSchema = new mongoose.Schema({
 });
 
 metricSchema.index({ hostId: 1, timestamp: -1 });
+metricSchema.index({ timestamp: 1 }, { expireAfterSeconds: 86400 });
 
 const Metric = mongoose.model("Metric", metricSchema);
 module.exports = Metric;
